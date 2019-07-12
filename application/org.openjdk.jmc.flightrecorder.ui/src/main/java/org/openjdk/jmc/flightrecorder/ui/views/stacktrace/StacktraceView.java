@@ -92,10 +92,16 @@ import org.eclipse.ui.part.ViewPart;
 import org.openjdk.jmc.common.IDisplayable;
 import org.openjdk.jmc.common.IMCFrame;
 import org.openjdk.jmc.common.IState;
+import org.openjdk.jmc.common.collection.IteratorToolkit;
 import org.openjdk.jmc.common.collection.SimpleArray;
+import org.openjdk.jmc.common.item.IItem;
 import org.openjdk.jmc.common.item.IItemCollection;
+import org.openjdk.jmc.common.item.IItemFilter;
+import org.openjdk.jmc.common.item.ItemFilters;
 import org.openjdk.jmc.common.unit.UnitLookup;
 import org.openjdk.jmc.common.util.StateToolkit;
+import org.openjdk.jmc.flightrecorder.jdk.JdkAggregators;
+import org.openjdk.jmc.flightrecorder.jdk.JdkFilters;
 import org.openjdk.jmc.flightrecorder.stacktrace.FrameSeparator;
 import org.openjdk.jmc.flightrecorder.stacktrace.FrameSeparator.FrameCategorization;
 import org.openjdk.jmc.flightrecorder.stacktrace.StacktraceFormatToolkit;
@@ -181,7 +187,7 @@ public class StacktraceView extends ViewPart implements ISelectionListener {
 	private static final Color COUNT_COLOR = SWTColorToolkit.getColor(new RGB(100, 200, 100));
 	private static final String SIBLINGS_IMG_KEY = "siblingsColor"; //$NON-NLS-1$
 	private static final Color SIBLINGS_COUNT_COLOR = SWTColorToolkit.getColor(new RGB(170, 250, 170));
-	private static final int[] DEFAULT_COLUMN_WIDTHS = {700, 150};
+	private static final int[] DEFAULT_COLUMN_WIDTHS = {700, 150, 150};
 	private static final String THREAD_ROOT_KEY = "threadRootAtTop"; //$NON-NLS-1$
 	private static final String FRAME_OPTIMIZATION_KEY = "distinguishFramesByOptimization"; //$NON-NLS-1$
 	private static final String FRAME_CATEGORIZATION_KEY = "distinguishFramesCategorization"; //$NON-NLS-1$
@@ -491,7 +497,7 @@ public class StacktraceView extends ViewPart implements ISelectionListener {
 		new StacktraceViewToolTipSupport(viewer);
 		MCContextMenuManager mm = MCContextMenuManager.create(viewer.getControl());
 		CopySelectionAction copyAction = new CopySelectionAction(viewer,
-				FormatToolkit.selectionFormatter(stackTraceLabelProvider, countLabelProvider));
+				FormatToolkit.selectionFormatter(stackTraceLabelProvider, countLabelProvider, allocPressureLabelProvider));
 		InFocusHandlerActivator.install(viewer.getControl(), copyAction);
 		mm.appendToGroup(MCContextMenuManager.GROUP_EDIT, copyAction);
 		mm.appendToGroup(MCContextMenuManager.GROUP_EDIT, CopySettings.getInstance().createContributionItem());
@@ -515,6 +521,8 @@ public class StacktraceView extends ViewPart implements ISelectionListener {
 				.setLabelProvider(stackTraceLabelProvider);
 		buildColumn(viewer, Messages.STACKTRACE_VIEW_COUNT_COLUMN_NAME, SWT.RIGHT, columnWidths[1])
 				.setLabelProvider(countLabelProvider);
+		buildColumn(viewer, Messages.STACKTRACE_VIEW_ALLOC_PRESSURE_COLUMN_NAME, SWT.RIGHT, columnWidths[2])
+				.setLabelProvider(allocPressureLabelProvider);
 
 		PlatformUI.getWorkbench().getHelpSystem().setHelp(viewer.getControl(), HELP_CONTEXT_ID);
 
@@ -731,7 +739,13 @@ public class StacktraceView extends ViewPart implements ISelectionListener {
 	private final ColumnLabelProvider countLabelProvider = new ColumnLabelProvider() {
 		@Override
 		public String getText(Object element) {
-			return Integer.toString(((StacktraceFrame) element).getItemCount());
+			// display normalized count (percentage of total count)
+			StacktraceFrame frame = (StacktraceFrame) element;
+			Fork rootFork = getRootFork(frame.getBranch().getParentFork());
+			int itemCount = frame.getItemCount();
+			int totalCount = rootFork.getItemsInFork();
+			return UnitLookup.PERCENT_UNITY.quantity(itemCount / (double) totalCount)
+					.displayUsing(IDisplayable.AUTO);
 		}
 
 		@Override
@@ -753,6 +767,26 @@ public class StacktraceView extends ViewPart implements ISelectionListener {
 			sb.append("</li>"); //$NON-NLS-1$
 			sb.append("</form>"); //$NON-NLS-1$
 			return sb.toString();
+		}
+	};
+
+	private final ColumnLabelProvider allocPressureLabelProvider = new ColumnLabelProvider() {
+		@Override
+		public String getText(Object element) {
+			try {
+				SimpleArray<IItem> items = ((StacktraceFrame) element).getItems();
+				SimpleArray<IItem> allItems = ((StacktraceFrame) element).getBranch().getFirstFrame().getItems();
+
+				IItemCollection itemsCollection = ItemCollectionToolkit.build(IteratorToolkit.toList(items.iterator(), items.size()).stream());
+				IItemCollection allItemsCollection = ItemCollectionToolkit.build(IteratorToolkit.toList(allItems.iterator(), items.size()).stream());
+
+				Double itemsAlloc = itemsCollection.getAggregate(JdkAggregators.ALLOCATION_TOTAL).numberValue().doubleValue();
+				Double allItemsAlloc = allItemsCollection.getAggregate(JdkAggregators.ALLOCATION_TOTAL).numberValue().doubleValue();
+
+				return String.format("%.1f %%", (itemsAlloc / allItemsAlloc ) * 100);
+			} catch (Exception e) {
+				return "0.0 %";
+			}
 		}
 	};
 
