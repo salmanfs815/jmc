@@ -89,6 +89,7 @@ import org.openjdk.jmc.flightrecorder.ui.IPageUI;
 import org.openjdk.jmc.flightrecorder.ui.ItemCollectionToolkit;
 import org.openjdk.jmc.flightrecorder.ui.RulesUiToolkit;
 import org.openjdk.jmc.flightrecorder.ui.StreamModel;
+import org.openjdk.jmc.flightrecorder.ui.TypeSelectorWizardPage;
 import org.openjdk.jmc.flightrecorder.ui.common.AbstractDataPage;
 import org.openjdk.jmc.flightrecorder.ui.common.DataPageToolkit;
 import org.openjdk.jmc.flightrecorder.ui.common.FlavorSelector;
@@ -153,7 +154,8 @@ public class ItemHandlerPage extends AbstractDataPage {
 				return name;
 			}
 			IItemFilter cf = getPageFilter(state);
-			return cf instanceof Type ? ((Type) cf).getTypeId() : Messages.ItemHandlerPage_DEFAULT_PAGE_NAME;
+//			return cf instanceof Type ? ((Type) cf).getTypeId() : Messages.ItemHandlerPage_DEFAULT_PAGE_NAME;
+			return cf instanceof Type ? ((Type) cf).getTypeId() : TypeSelectorWizardPage.newPageName;
 		}
 
 		@Override

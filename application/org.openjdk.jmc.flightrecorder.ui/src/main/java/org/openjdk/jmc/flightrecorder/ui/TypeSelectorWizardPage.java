@@ -36,21 +36,27 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.jface.wizard.WizardPage;
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
-
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Text;
 import org.openjdk.jmc.common.item.IItem;
 import org.openjdk.jmc.common.item.IType;
 import org.openjdk.jmc.flightrecorder.ui.EventTypeFolderNode.EventTypeNode;
 import org.openjdk.jmc.flightrecorder.ui.common.TypeFilterBuilder;
+import org.openjdk.jmc.flightrecorder.ui.messages.internal.Messages;
 import org.openjdk.jmc.ui.wizards.IPerformFinishable;
 import org.openjdk.jmc.ui.wizards.OnePageWizardDialog;
 
-class TypeSelectorWizardPage extends WizardPage implements IPerformFinishable {
+public class TypeSelectorWizardPage extends WizardPage implements IPerformFinishable {
 
 	private final EventTypeFolderNode root;
 	private final Consumer<Set<IType<IItem>>> onTypesSelected;
 	private TypeFilterBuilder typeSelector;
+	private Text nameTextBox;
+	public static String newPageName = Messages.ItemHandlerPage_DEFAULT_PAGE_NAME;
 
 	TypeSelectorWizardPage(EventTypeFolderNode root, Consumer<Set<IType<IItem>>> onTypesSelected, String title,
 			String description) {
@@ -63,15 +69,22 @@ class TypeSelectorWizardPage extends WizardPage implements IPerformFinishable {
 
 	@Override
 	public void createControl(Composite parent) {
-		typeSelector = new TypeFilterBuilder(parent,
+		Composite composite = new Composite(parent, SWT.NONE);
+		composite.setLayout(GridLayoutFactory.swtDefaults().create());
+		typeSelector = new TypeFilterBuilder(composite,
 				() -> setPageComplete(typeSelector.getCheckedTypeIds().findAny().isPresent()));
 		typeSelector.setInput(root);
 		setControl(typeSelector.getControl());
+		new Label(composite, SWT.NONE).setText("Page Name:");
+		nameTextBox = new Text(composite, SWT.NONE);
+		nameTextBox.setEditable(true);
+		nameTextBox.setText(Messages.ItemHandlerPage_DEFAULT_PAGE_NAME);
 	}
 
 	@Override
 	public boolean performFinish() {
 		onTypesSelected.accept(typeSelector.getSelectedTypes().map(EventTypeNode::getType).collect(Collectors.toSet()));
+		newPageName = nameTextBox.getText();
 		return true;
 	}
 
