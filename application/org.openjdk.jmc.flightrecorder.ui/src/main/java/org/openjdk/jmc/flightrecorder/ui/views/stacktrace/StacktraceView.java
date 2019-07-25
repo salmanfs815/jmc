@@ -773,19 +773,24 @@ public class StacktraceView extends ViewPart implements ISelectionListener {
 	private final ColumnLabelProvider allocPressureLabelProvider = new ColumnLabelProvider() {
 		@Override
 		public String getText(Object element) {
+			StacktraceFrame frame = (StacktraceFrame) element;
+
+			SimpleArray<IItem> items = frame.getItems();
+			Branch branch = frame.getBranch();
+			SimpleArray<IItem> allItems = new SimpleArray<IItem>(branch.getFirstFrame().getItems().elements());
+			for (StacktraceFrame f: branch.getTailFrames()) {
+				allItems.addAll(f.getItems().elements());
+			}
+
+			IItemCollection itemsCollection = ItemCollectionToolkit.build(IteratorToolkit.toList(items.iterator(), items.size()).stream());
+			IItemCollection allItemsCollection = ItemCollectionToolkit.build(IteratorToolkit.toList(allItems.iterator(), items.size()).stream());
+
 			try {
-				SimpleArray<IItem> items = ((StacktraceFrame) element).getItems();
-				SimpleArray<IItem> allItems = ((StacktraceFrame) element).getBranch().getFirstFrame().getItems();
-
-				IItemCollection itemsCollection = ItemCollectionToolkit.build(IteratorToolkit.toList(items.iterator(), items.size()).stream());
-				IItemCollection allItemsCollection = ItemCollectionToolkit.build(IteratorToolkit.toList(allItems.iterator(), items.size()).stream());
-
 				Double itemsAlloc = itemsCollection.getAggregate(JdkAggregators.ALLOCATION_TOTAL).numberValue().doubleValue();
 				Double allItemsAlloc = allItemsCollection.getAggregate(JdkAggregators.ALLOCATION_TOTAL).numberValue().doubleValue();
-
 				return String.format("%.1f %%", (itemsAlloc / allItemsAlloc ) * 100);
-			} catch (Exception e) {
-				return "0.0 %";
+			} catch (NullPointerException e) { // ALLOCATION_TOTAL is only available in Memory page
+				return "";
 			}
 		}
 	};
