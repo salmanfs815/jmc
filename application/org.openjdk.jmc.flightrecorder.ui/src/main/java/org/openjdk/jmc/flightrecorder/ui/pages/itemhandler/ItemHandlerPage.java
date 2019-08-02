@@ -118,9 +118,15 @@ public class ItemHandlerPage extends AbstractDataPage {
 	public static class ItemHandlerUiStandIn implements IStateful {
 
 		private final Set<? extends IType<?>> types;
+		private String pageName;
 
 		public ItemHandlerUiStandIn(Set<? extends IType<?>> types) {
 			this.types = types;
+		}
+
+		public ItemHandlerUiStandIn(Set<? extends IType<?>> types, String customName) {
+			this.types = types;
+			this.pageName = customName;
 		}
 
 		@Override
@@ -141,6 +147,9 @@ public class ItemHandlerPage extends AbstractDataPage {
 			} else {
 				filter = ItemFilters.type(typesIds);
 			}
+			if (pageName != null) {
+				LabeledPageFactory.writeLabel(state, pageName, null, null);
+			}
 			((PersistableItemFilter) filter).saveTo(state.createChild(ELEMENT_FILTER));
 		}
 	}
@@ -154,8 +163,7 @@ public class ItemHandlerPage extends AbstractDataPage {
 				return name;
 			}
 			IItemFilter cf = getPageFilter(state);
-//			return cf instanceof Type ? ((Type) cf).getTypeId() : Messages.ItemHandlerPage_DEFAULT_PAGE_NAME;
-			return cf instanceof Type ? ((Type) cf).getTypeId() : TypeSelectorWizardPage.newPageName;
+			return cf instanceof Type ? ((Type) cf).getTypeId() : Messages.ItemHandlerPage_DEFAULT_PAGE_NAME;
 		}
 
 		@Override
