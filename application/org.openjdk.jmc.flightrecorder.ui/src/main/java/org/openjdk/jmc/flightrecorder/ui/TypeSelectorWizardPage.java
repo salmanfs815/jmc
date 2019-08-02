@@ -32,14 +32,25 @@
  */
 package org.openjdk.jmc.flightrecorder.ui;
 
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.eclipse.jface.layout.GridLayoutFactory;
+import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.GC;
+import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.ImageData;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
 import org.openjdk.jmc.common.item.IItem;
@@ -47,6 +58,7 @@ import org.openjdk.jmc.common.item.IType;
 import org.openjdk.jmc.flightrecorder.ui.EventTypeFolderNode.EventTypeNode;
 import org.openjdk.jmc.flightrecorder.ui.common.TypeFilterBuilder;
 import org.openjdk.jmc.flightrecorder.ui.messages.internal.Messages;
+import org.openjdk.jmc.ui.misc.DisplayToolkit;
 import org.openjdk.jmc.ui.wizards.IPerformFinishable;
 import org.openjdk.jmc.ui.wizards.OnePageWizardDialog;
 
@@ -56,6 +68,7 @@ public class TypeSelectorWizardPage extends WizardPage implements IPerformFinish
 	private final Consumer<Set<IType<IItem>>> onTypesSelected;
 	private TypeFilterBuilder typeSelector;
 	private Text nameTextBox;
+	private Label imageLabel;
 	public static String newPageName = Messages.ItemHandlerPage_DEFAULT_PAGE_NAME;
 
 	TypeSelectorWizardPage(EventTypeFolderNode root, Consumer<Set<IType<IItem>>> onTypesSelected, String title,
@@ -75,10 +88,63 @@ public class TypeSelectorWizardPage extends WizardPage implements IPerformFinish
 				() -> setPageComplete(typeSelector.getCheckedTypeIds().findAny().isPresent()));
 		typeSelector.setInput(root);
 		setControl(typeSelector.getControl());
+
 		new Label(composite, SWT.NONE).setText("Page Name:");
 		nameTextBox = new Text(composite, SWT.NONE);
 		nameTextBox.setEditable(true);
 		nameTextBox.setText(Messages.ItemHandlerPage_DEFAULT_PAGE_NAME);
+
+		Button button = new Button(composite, SWT.NONE);
+		button.setText("Choose page icon");
+
+		button.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				chooseImageFileDialog();
+			}
+		});
+	}
+
+	private void chooseImageFileDialog() {
+		FileDialog fileDialog = new FileDialog(getShell(), SWT.OPEN);
+		String[] filterNames = new String[] {"Image Files", "All Files (*)"}; //$NON-NLS-1$ //$NON-NLS-2$
+		String[] filterExtensions = new String[] {"*.gif;*.png;*.xpm;*.jpg;*.jpeg;*.tiff", "*"}; //$NON-NLS-1$ //$NON-NLS-2$
+		fileDialog.setFilterNames(filterNames);
+		fileDialog.setFilterExtensions(filterExtensions);
+		String filename = fileDialog.open();
+		if (filename == null) {
+			// Dialog was cancelled. Bail out early to avoid handling that case later. Premature?
+			return;
+		}
+		try (InputStream fis = new FileInputStream(filename)) {
+			ImageData imageData = new ImageData(fis);
+//			ImageData imageData = new ImageData(filename);
+			// Validate image data
+			if (imageData.width != 16 || imageData.height != 16) {
+				imageData = resizeImage(imageData, 16, 16);
+			}
+			DisplayToolkit.dispose(imageLabel.getImage());
+			imageLabel.setImage(new Image(getShell().getDisplay(), imageData));
+			imageLabel.getParent().layout();
+			setPageComplete(isPageComplete());
+		} catch (Exception e) {
+			// FIXME: Add proper logging
+			e.printStackTrace();
+		}
+	}
+
+	private ImageData resizeImage(ImageData imageData, int width, int height) {
+		Image original = ImageDescriptor.createFromImageData(imageData).createImage();
+		Image scaled = new Image(Display.getDefault(), width, height);
+		GC gc = new GC(scaled);
+		gc.setAntialias(SWT.ON);
+		gc.setInterpolation(SWT.HIGH);
+		gc.drawImage(original, 0, 0, imageData.width, imageData.height, 0, 0, width, height);
+		gc.dispose();
+		original.dispose();
+		ImageData scaledData = scaled.getImageData();
+		scaled.dispose();
+		return scaledData;
 	}
 
 	@Override

@@ -492,7 +492,8 @@ public class JfrOutlinePage extends ContentOutlinePage {
 	private void openCreateCustomPageDialog() {
 		TypeSelectorWizardPage.openDialog(editor.getModel().getTypeTree(), types -> {
 			PageManager pm = FlightRecorderUI.getDefault().getPageManager();
-			addChildToSelected(pm.createPage(ItemHandlerPage.Factory.class, new ItemHandlerUiStandIn(types)));
+			ItemHandlerUiStandIn itemHandlerUiStandIn = new ItemHandlerUiStandIn(types);
+			addChildToSelected(pm.createPage(ItemHandlerPage.Factory.class, itemHandlerUiStandIn));
 		}, Messages.JFR_OUTLINE_CREATE_CUSTOM_TITLE, Messages.JFR_OUTLINE_CREATE_CUSTOM_MESSAGE);
 	}
 }

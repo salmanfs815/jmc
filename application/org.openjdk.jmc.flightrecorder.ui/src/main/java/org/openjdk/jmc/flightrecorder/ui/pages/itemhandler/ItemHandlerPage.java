@@ -129,6 +129,10 @@ public class ItemHandlerPage extends AbstractDataPage {
 			this.pageName = customName;
 		}
 
+		public void setPageName(String name) {
+			pageName = name;
+		}
+
 		@Override
 		public void saveTo(IWritableState state) {
 			Set<String> typesIds = types.stream().map(IType::getIdentifier).collect(Collectors.toSet());
