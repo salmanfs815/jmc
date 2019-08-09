@@ -35,19 +35,15 @@ package org.openjdk.jmc.flightrecorder.ui;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;
-import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.FileDialog;
@@ -56,8 +52,10 @@ import org.eclipse.swt.widgets.Text;
 import org.openjdk.jmc.common.item.IItem;
 import org.openjdk.jmc.common.item.IType;
 import org.openjdk.jmc.flightrecorder.ui.EventTypeFolderNode.EventTypeNode;
+import org.openjdk.jmc.flightrecorder.ui.JfrOutlinePage.TriFunction;
 import org.openjdk.jmc.flightrecorder.ui.common.TypeFilterBuilder;
 import org.openjdk.jmc.flightrecorder.ui.messages.internal.Messages;
+import org.openjdk.jmc.flightrecorder.ui.pages.itemhandler.ItemHandlerPage.ItemHandlerUiStandIn;
 import org.openjdk.jmc.ui.misc.DisplayToolkit;
 import org.openjdk.jmc.ui.wizards.IPerformFinishable;
 import org.openjdk.jmc.ui.wizards.OnePageWizardDialog;
@@ -65,13 +63,14 @@ import org.openjdk.jmc.ui.wizards.OnePageWizardDialog;
 public class TypeSelectorWizardPage extends WizardPage implements IPerformFinishable {
 
 	private final EventTypeFolderNode root;
-	private final Consumer<Set<IType<IItem>>> onTypesSelected;
+	private final TriFunction<Set<IType<IItem>>, String, ImageDescriptor> onTypesSelected;
 	private TypeFilterBuilder typeSelector;
+	private ItemHandlerUiStandIn itemHandlerUiStandIn;
 	private Text nameTextBox;
 	private Label imageLabel;
 	public static String newPageName = Messages.ItemHandlerPage_DEFAULT_PAGE_NAME;
 
-	TypeSelectorWizardPage(EventTypeFolderNode root, Consumer<Set<IType<IItem>>> onTypesSelected, String title,
+	TypeSelectorWizardPage(EventTypeFolderNode root, TriFunction<Set<IType<IItem>>, String, ImageDescriptor> onTypesSelected, String title,
 			String description) {
 		super("TypeSelectorWizardPage"); //$NON-NLS-1$
 		this.root = root;
@@ -94,15 +93,15 @@ public class TypeSelectorWizardPage extends WizardPage implements IPerformFinish
 		nameTextBox.setEditable(true);
 		nameTextBox.setText(Messages.ItemHandlerPage_DEFAULT_PAGE_NAME);
 
-		Button button = new Button(composite, SWT.NONE);
-		button.setText("Choose page icon");
-
-		button.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				chooseImageFileDialog();
-			}
-		});
+//		Button button = new Button(composite, SWT.NONE);
+//		button.setText("Choose page icon");
+//
+//		button.addSelectionListener(new SelectionAdapter() {
+//			@Override
+//			public void widgetSelected(SelectionEvent e) {
+//				chooseImageFileDialog();
+//			}
+//		});
 	}
 
 	private void chooseImageFileDialog() {
@@ -149,13 +148,15 @@ public class TypeSelectorWizardPage extends WizardPage implements IPerformFinish
 
 	@Override
 	public boolean performFinish() {
-		onTypesSelected.accept(typeSelector.getSelectedTypes().map(EventTypeNode::getType).collect(Collectors.toSet()));
 		newPageName = nameTextBox.getText();
+		onTypesSelected.apply(typeSelector.getSelectedTypes().map(EventTypeNode::getType).collect(Collectors.toSet()),
+				newPageName, null);
+//		newPageName = Messages.ItemHandlerPage_DEFAULT_PAGE_NAME;
 		return true;
 	}
 
 	static void openDialog(
-		EventTypeFolderNode root, Consumer<Set<IType<IItem>>> onTypesSelected, String title, String description) {
+		EventTypeFolderNode root, TriFunction<Set<IType<IItem>>, String, ImageDescriptor> onTypesSelected, String title, String description) {
 		OnePageWizardDialog.open(new TypeSelectorWizardPage(root, onTypesSelected, title, description), 500, 600);
 	}
 }

@@ -37,6 +37,7 @@ import static org.eclipse.ui.IWorkbenchCommandConstants.EDIT_DELETE;
 import static org.eclipse.ui.IWorkbenchCommandConstants.EDIT_PASTE;
 
 import java.util.List;
+import java.util.Set;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.IAction;
@@ -68,7 +69,8 @@ import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.part.IPageSite;
 import org.eclipse.ui.views.contentoutline.ContentOutlinePage;
-
+import org.openjdk.jmc.common.item.IItem;
+import org.openjdk.jmc.common.item.IType;
 import org.openjdk.jmc.flightrecorder.ui.messages.internal.Messages;
 import org.openjdk.jmc.flightrecorder.ui.pages.itemhandler.ItemHandlerPage;
 import org.openjdk.jmc.flightrecorder.ui.pages.itemhandler.ItemHandlerPage.ItemHandlerUiStandIn;
@@ -489,11 +491,19 @@ public class JfrOutlinePage extends ContentOutlinePage {
 		return lockAction;
 	}
 
+	@FunctionalInterface
+	interface TriFunction<One, Two, Three> {
+		public void apply(One one, Two two, Three three);
+	}
+
 	private void openCreateCustomPageDialog() {
-		TypeSelectorWizardPage.openDialog(editor.getModel().getTypeTree(), types -> {
+		TriFunction<Set<IType<IItem>>, String, ImageDescriptor> func = (types, label, icon) -> {
 			PageManager pm = FlightRecorderUI.getDefault().getPageManager();
 			ItemHandlerUiStandIn itemHandlerUiStandIn = new ItemHandlerUiStandIn(types);
+			if (label != null) itemHandlerUiStandIn.setPageName(label);
+			if (icon != null) itemHandlerUiStandIn.setPageIcon(icon);
 			addChildToSelected(pm.createPage(ItemHandlerPage.Factory.class, itemHandlerUiStandIn));
-		}, Messages.JFR_OUTLINE_CREATE_CUSTOM_TITLE, Messages.JFR_OUTLINE_CREATE_CUSTOM_MESSAGE);
+		};
+		TypeSelectorWizardPage.openDialog(editor.getModel().getTypeTree(), func, Messages.JFR_OUTLINE_CREATE_CUSTOM_TITLE, Messages.JFR_OUTLINE_CREATE_CUSTOM_MESSAGE);
 	}
 }

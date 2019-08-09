@@ -119,18 +119,24 @@ public class ItemHandlerPage extends AbstractDataPage {
 
 		private final Set<? extends IType<?>> types;
 		private String pageName;
+		private ImageDescriptor pageIcon;
 
 		public ItemHandlerUiStandIn(Set<? extends IType<?>> types) {
 			this.types = types;
 		}
 
-		public ItemHandlerUiStandIn(Set<? extends IType<?>> types, String customName) {
+		public ItemHandlerUiStandIn(Set<? extends IType<?>> types, String customName, ImageDescriptor customIcon) {
 			this.types = types;
-			this.pageName = customName;
+			pageName = customName;
+			pageIcon = customIcon;
 		}
 
 		public void setPageName(String name) {
 			pageName = name;
+		}
+
+		public void setPageIcon(ImageDescriptor icon) {
+			pageIcon = icon;
 		}
 
 		@Override
@@ -151,8 +157,8 @@ public class ItemHandlerPage extends AbstractDataPage {
 			} else {
 				filter = ItemFilters.type(typesIds);
 			}
-			if (pageName != null) {
-				LabeledPageFactory.writeLabel(state, pageName, null, null);
+			if (pageName != null && pageIcon != null) {
+				LabeledPageFactory.writeLabel(state, pageName, null, pageIcon);
 			}
 			((PersistableItemFilter) filter).saveTo(state.createChild(ELEMENT_FILTER));
 		}
@@ -167,7 +173,7 @@ public class ItemHandlerPage extends AbstractDataPage {
 				return name;
 			}
 			IItemFilter cf = getPageFilter(state);
-			return cf instanceof Type ? ((Type) cf).getTypeId() : Messages.ItemHandlerPage_DEFAULT_PAGE_NAME;
+			return cf instanceof Type ? ((Type) cf).getTypeId() : TypeSelectorWizardPage.newPageName; // Messages.ItemHandlerPage_DEFAULT_PAGE_NAME;
 		}
 
 		@Override
