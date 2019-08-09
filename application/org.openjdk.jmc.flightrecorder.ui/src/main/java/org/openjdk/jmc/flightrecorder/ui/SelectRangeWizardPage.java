@@ -159,7 +159,7 @@ class SelectRangeWizardPage extends WizardPage implements IPerformFinishable {
 		m_selectedEndLabel.setText(range.getEnd().displayUsing(IDisplayable.AUTO));
 		IQuantity warnExtent = m_range.getExtent().multiply(1.1); // 10% above initial
 		if (range.getExtent().compareTo(warnExtent) > 0) {
-			m_warningLabel.setText(Messages.SELECT_RANGE_WIZARD_TO_MUCH_SELECTED_WARNING);
+			m_warningLabel.setText(Messages.SELECT_RANGE_WIZARD_TOO_MUCH_SELECTED_WARNING);
 		} else {
 			m_warningLabel.setText(""); //$NON-NLS-1$
 		}
