@@ -33,8 +33,10 @@
 package org.openjdk.jmc.flightrecorder.ui.views.stacktrace;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -67,6 +69,7 @@ import org.eclipse.jface.viewers.TreeViewerColumn;
 import org.eclipse.jface.viewers.ViewerCell;
 import org.eclipse.jface.viewers.ViewerColumn;
 import org.eclipse.jface.window.ToolTip;
+import org.eclipse.osgi.util.NLS;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.TraverseEvent;
 import org.eclipse.swt.events.TraverseListener;
@@ -770,27 +773,45 @@ public class StacktraceView extends ViewPart implements ISelectionListener {
 		}
 	};
 
-	private final ColumnLabelProvider allocPressureLabelProvider = new ColumnLabelProvider() {
+	final ColumnLabelProvider allocPressureLabelProvider = new ColumnLabelProvider() {
 		@Override
 		public String getText(Object element) {
-			StacktraceFrame frame = (StacktraceFrame) element;
+			int[] allocData = getAllocationData((StacktraceFrame) element);
+			if (allocData == null) return "";
+			
+			double frameAllocation = (double) allocData[0];
+			double forkAllocation = (double) allocData[1];
+			// calculate allocation pressure and round to 1 decimal place
+			double allocationPressure = Math.round((frameAllocation / forkAllocation) * 1000) / 10.0;
+			return String.format("%.1f %%", allocationPressure);
+		}
 
+		@Override
+		public String getToolTipText(Object element) {
+			int[] allocData = getAllocationData((StacktraceFrame) element);
+			if (allocData == null) return null;
+			
+			int frameAllocation = allocData[0];
+			int forkAllocation = allocData[1];
+			// calculate allocation pressure and round to 1 decimal place
+			double allocationPressure = Math.round(((double) frameAllocation / (double) forkAllocation) * 1000) / 10.0;
+			return "<form><p>" + NLS.bind(Messages.STACKTRACE_VIEW_ALLOCATION_TOOLTIP, new Object[] {frameAllocation, allocationPressure, forkAllocation}) + "</p></form>";
+		}
+
+		int[] getAllocationData(StacktraceFrame frame) {
 			SimpleArray<IItem> items = frame.getItems();
-			Branch branch = frame.getBranch();
-			SimpleArray<IItem> allItems = new SimpleArray<IItem>(branch.getFirstFrame().getItems().elements());
-			for (StacktraceFrame f: branch.getTailFrames()) {
-				allItems.addAll(f.getItems().elements());
-			}
+			SimpleArray<IItem> allItems = frame.getBranch().getParentFork().getItemsArray();
 
 			IItemCollection itemsCollection = ItemCollectionToolkit.build(IteratorToolkit.toList(items.iterator(), items.size()).stream());
-			IItemCollection allItemsCollection = ItemCollectionToolkit.build(IteratorToolkit.toList(allItems.iterator(), items.size()).stream());
+			IItemCollection allItemsCollection = ItemCollectionToolkit.build(IteratorToolkit.toList(allItems.iterator(), allItems.size()).stream());
 
 			try {
-				Double itemsAlloc = itemsCollection.getAggregate(JdkAggregators.ALLOCATION_TOTAL).numberValue().doubleValue();
-				Double allItemsAlloc = allItemsCollection.getAggregate(JdkAggregators.ALLOCATION_TOTAL).numberValue().doubleValue();
-				return String.format("%.1f %%", (itemsAlloc / allItemsAlloc ) * 100);
-			} catch (NullPointerException e) { // ALLOCATION_TOTAL is only available in Memory page
-				return "";
+				int itemsAlloc = itemsCollection.getAggregate(JdkAggregators.ALLOCATION_TOTAL).numberValue().intValue();
+				int allItemsAlloc = allItemsCollection.getAggregate(JdkAggregators.ALLOCATION_TOTAL).numberValue().intValue();
+				int[] ret = {itemsAlloc, allItemsAlloc};
+				return ret;
+			} catch (NullPointerException e) { // ALLOCATION_TOTAL aggregator is only available in Memory page
+				return null;
 			}
 		}
 	};

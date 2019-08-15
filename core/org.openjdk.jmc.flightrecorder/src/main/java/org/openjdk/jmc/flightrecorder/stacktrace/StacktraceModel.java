@@ -416,6 +416,7 @@ public class StacktraceModel {
 		private final int itemOffset;
 		private final int itemsInFork;
 		private Integer selectedBranchIndex;
+		private SimpleArray<IItem> itemsArray;
 
 		private Fork(Branch parentBranch) {
 			this(parentBranch.getLastFrame().getItems(),
@@ -436,15 +437,21 @@ public class StacktraceModel {
 			List<FrameEntry> branchHeadFrames = getDistinctFrames(countFramesOnOrAbove(parentBranch), items);
 			Collections.sort(branchHeadFrames, COUNT_CMP);
 			int itemsInFork = 0;
+			itemsArray = new SimpleArray<>(new IItem[0]);
 			SimpleArray<Branch> branches = new SimpleArray<>(new Branch[branchHeadFrames.size()]);
 			for (FrameEntry fe : branchHeadFrames) {
 				Branch b = new Branch(Fork.this, fe.items, fe.frame, branches.size(), itemsInFork);
 				itemsInFork += fe.items.size();
+				itemsArray.addAll(fe.items.elements());
 				branches.add(b);
 			}
 			selectedBranchIndex = branches.size() > 0 ? 0 : null; // To disable default branch selection: always set null
 			this.branches = branches.elements();
 			this.itemsInFork = itemsInFork;
+		}
+
+		public SimpleArray<IItem> getItemsArray() {
+			return itemsArray;
 		}
 
 		public int getItemOffset() {
