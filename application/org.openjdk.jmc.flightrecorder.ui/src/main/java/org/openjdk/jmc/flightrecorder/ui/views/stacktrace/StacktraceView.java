@@ -798,23 +798,40 @@ public class StacktraceView extends ViewPart implements ISelectionListener {
 			return "<form><p>" + NLS.bind(Messages.STACKTRACE_VIEW_ALLOCATION_TOOLTIP, new Object[] {frameAllocation, allocationPressure, forkAllocation}) + "</p></form>";
 		}
 
-		int[] getAllocationData(StacktraceFrame frame) {
-			SimpleArray<IItem> items = frame.getItems();
-			SimpleArray<IItem> allItems = frame.getBranch().getParentFork().getItemsArray();
-
-			IItemCollection itemsCollection = ItemCollectionToolkit.build(IteratorToolkit.toList(items.iterator(), items.size()).stream());
-			IItemCollection allItemsCollection = ItemCollectionToolkit.build(IteratorToolkit.toList(allItems.iterator(), allItems.size()).stream());
-
-			try {
-				int itemsAlloc = itemsCollection.getAggregate(JdkAggregators.ALLOCATION_TOTAL).numberValue().intValue();
-				int allItemsAlloc = allItemsCollection.getAggregate(JdkAggregators.ALLOCATION_TOTAL).numberValue().intValue();
-				int[] ret = {itemsAlloc, allItemsAlloc};
-				return ret;
-			} catch (NullPointerException e) { // ALLOCATION_TOTAL aggregator is only available in Memory page
-				return null;
-			}
-		}
+//		private int[] getAllocationData(StacktraceFrame frame) {
+//			SimpleArray<IItem> items = frame.getItems();
+//			SimpleArray<IItem> allItems = frame.getBranch().getParentFork().getItemsArray();
+//
+//			IItemCollection itemsCollection = ItemCollectionToolkit.build(IteratorToolkit.toList(items.iterator(), items.size()).stream());
+//			IItemCollection allItemsCollection = ItemCollectionToolkit.build(IteratorToolkit.toList(allItems.iterator(), allItems.size()).stream());
+//
+//			try {
+//				int itemsAlloc = itemsCollection.getAggregate(JdkAggregators.ALLOCATION_TOTAL).numberValue().intValue();
+//				int allItemsAlloc = allItemsCollection.getAggregate(JdkAggregators.ALLOCATION_TOTAL).numberValue().intValue();
+//				int[] ret = {itemsAlloc, allItemsAlloc};
+//				return ret;
+//			} catch (NullPointerException e) { // ALLOCATION_TOTAL aggregator is only available in Memory page
+//				return null;
+//			}
+//		}
 	};
+
+	static int[] getAllocationData(StacktraceFrame frame) {
+		SimpleArray<IItem> items = frame.getItems();
+		SimpleArray<IItem> allItems = frame.getBranch().getParentFork().getItemsArray();
+
+		IItemCollection itemsCollection = ItemCollectionToolkit.build(IteratorToolkit.toList(items.iterator(), items.size()).stream());
+		IItemCollection allItemsCollection = ItemCollectionToolkit.build(IteratorToolkit.toList(allItems.iterator(), allItems.size()).stream());
+
+		try {
+			int itemsAlloc = itemsCollection.getAggregate(JdkAggregators.ALLOCATION_TOTAL).numberValue().intValue();
+			int allItemsAlloc = allItemsCollection.getAggregate(JdkAggregators.ALLOCATION_TOTAL).numberValue().intValue();
+			int[] ret = {itemsAlloc, allItemsAlloc};
+			return ret;
+		} catch (NullPointerException e) { // ALLOCATION_TOTAL aggregator is only available in Memory page
+			return null;
+		}
+	}
 
 	private final ColumnLabelProvider stackTraceLabelProvider = new ColumnLabelProvider() {
 
