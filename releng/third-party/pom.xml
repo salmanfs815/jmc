@@ -342,6 +342,12 @@
 								<artifact>
 									<id>org.hdrhistogram:HdrHistogram:2.1.11</id>
 								</artifact>
+								<artifact>
+									<id>org.powermock:powermock-module-junit4:2.0.2</id>
+								</artifact>
+								<artifact>
+									<id>org.powermock:powermock-api-mockito2:2.0.2</id>
+								</artifact>
 							</artifacts>
 						</configuration>
 					</execution>
